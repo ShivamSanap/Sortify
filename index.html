@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sorting Visualizer</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f4f9;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+        }
+        #controls {
+            margin: 20px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            background-color: #4CAF50;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #speedControl {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        #speedControl input {
+            width: 100px;
+        }
+        #visualizer {
+            display: flex;
+            align-items: flex-end;
+            width: 910px;
+            height: 500px;
+            border: 1px solid #ccc;
+            background-color: white;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        .bar {
+            width: 7px;
+            margin-right: 1px;
+            background-color: #4CAF50;
+            transition: height 0.3s ease;
+        }
+        .bar.odd {
+            background-color: #81C784;
+        }
+        .bar.even {
+            background-color: #66BB6A;
+        }
+        .bar.active {
+            background-color: #FF5722;
+        }
+        .bar.compared {
+            background-color: #FFC107;
+        }
+        .bar.sorted {
+            background-color: #2196F3;
+        }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <button onclick="generate()">Generate New Array</button>
+        <button onclick="sort('selection')">Selection Sort</button>
+        <button onclick="sort('insertion')">Insertion Sort</button>
+        <button onclick="sort('bubble')">Bubble Sort</button>
+        <div id="speedControl">
+            <label for="speed">Speed:</label>
+            <input type="range" id="speed" name="speed" min="10" max="1000" value="100">
+        </div>
+    </div>
+    <div id="visualizer"></div>
+    <script>
+        let array = [];
+        let speed = 100;
+
+        document.getElementById('speed').addEventListener('input', function() {
+            speed = this.value;
+        });
+
+        function generate() {
+            fetch('/generate', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    array = data;
+                    visualize();
+                });
+        }
+
+        function sort(algorithm) {
+            fetch('/sort', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ algorithm: algorithm, array: array })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    animate(data);
+                });
+        }
+
+        function visualize(active = [], compared = [], sorted = []) {
+            const container = document.getElementById('visualizer');
+            container.innerHTML = '';
+            array.forEach((value, index) => {
+                const bar = document.createElement('div');
+                bar.classList.add('bar');
+                bar.style.height = `${value}px`;
+                if (index % 2 === 0) {
+                    bar.classList.add('even');
+                } else {
+                    bar.classList.add('odd');
+                }
+                if (active.includes(index)) {
+                    bar.classList.add('active');
+                }
+                if (compared.includes(index)) {
+                    bar.classList.add('compared');
+                }
+                if (sorted.includes(index)) {
+                    bar.classList.add('sorted');
+                }
+                container.appendChild(bar);
+            });
+        }
+
+        function animate(steps) {
+            let index = 0;
+
+            function step() {
+                const { array: stepArray, active, compared, sorted } = steps[index];
+                array = stepArray;
+                visualize(active, compared, sorted);
+                index++;
+                if (index < steps.length) {
+                    setTimeout(step, speed);
+                }
+            }
+
+            step();
+        }
+
+        generate();
+    </script>
+</body>
+</html>
